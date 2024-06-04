@@ -1,0 +1,7 @@
+model:
+  backend: onnxrt_cuda_ep
+  domain: null
+  inputs: []
+  outputs: []
+  quant_format: ''
+device: gpu
