@@ -1,0 +1,18 @@
+services:
+  trt:
+    image: test:12062024
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ../:/workspace  # Replace './local-dir' with the path to your local directory
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    stdin_open: true  # Equivalent to -i
+    tty: true         # Equivalent to -t

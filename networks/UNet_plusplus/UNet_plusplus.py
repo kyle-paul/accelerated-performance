@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class ConvBatchRelu(nn.Module):
     def __init__(self, in_channels, out_channels, bias=False):
@@ -27,7 +26,7 @@ class ConvBatchRelu(nn.Module):
         return x
     
 class UNet_plusplus(nn.Module):
-    def __init__(self, num_classes, input_channels=1, **kwargs):
+    def __init__(self, num_classes, input_channels=1, deep_supervision=False, **kwargs):
         super().__init__()
 
         filters = [32, 64, 128, 256, 512]
@@ -58,7 +57,15 @@ class UNet_plusplus(nn.Module):
 
         # 5 layers for block 1
         self.conv1_5 = ConvBatchRelu(filters[0] * 4 + filters[1], filters[0])
-        self.final = nn.Conv2d(filters[0], num_classes, kernel_size=1)
+        
+        self.deep_supervision = deep_supervision
+        if self.deep_supervision:
+            self.final1 = nn.Conv2d(filters[0], num_classes, kernel_size=1)
+            self.final2 = nn.Conv2d(filters[0], num_classes, kernel_size=1)
+            self.final3 = nn.Conv2d(filters[0], num_classes, kernel_size=1)
+            self.final4 = nn.Conv2d(filters[0], num_classes, kernel_size=1)
+        else:
+            self.final = nn.Conv2d(filters[0], num_classes, kernel_size=1)
 
 
     def forward(self, input):
@@ -81,6 +88,14 @@ class UNet_plusplus(nn.Module):
         x3_3 = self.conv3_3(torch.cat([x3_1, x3_2, self.up(x4_2)], 1)) # block 4 -> block 3 = block 3 layer 3
         x2_4 = self.conv2_4(torch.cat([x2_1, x2_2, x2_3, self.up(x3_3)], 1)) # block 3 -> block 2 = block 2 layer 4
         x1_5 = self.conv1_5(torch.cat([x1_1, x1_2, x1_3, x1_4, self.up(x2_4)], 1))  # block 2 -> block 1 = block 1 layer 5
+            
+        if self.deep_supervision:            
+            output1 = self.final1(x1_2)
+            output2 = self.final2(x1_3)
+            output3 = self.final3(x1_4)
+            output4 = self.final4(x1_5)
+            return [output1, output2, output3, output4]
 
-        output = self.final(x1_5)
-        return output
+        else:
+            output = self.final(x1_5)
+            return output
